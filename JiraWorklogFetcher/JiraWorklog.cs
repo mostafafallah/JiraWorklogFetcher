@@ -24,6 +24,8 @@ namespace JiraWorklogFetcher
             Configuration = new ConfigurationBuilder()
                  .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true)
+                //.AddEnvironmentVariables();
                 .Build();
 
             // Load the Jira settings from appsettings.json
@@ -58,14 +60,12 @@ namespace JiraWorklogFetcher
                 Colorful.Console.WriteLine($"{issueKeys.Count} items found!", Color.LightGreen);
 
                 // Gathering worklogs
-                List<WorklogEntry> worklogEntries = new List<WorklogEntry>();
-                var worklogTasks = issueKeys.Select(issueKey => GetWorklogsForIssue(client, issueKey, worklogEntries)).ToArray();
                 int counter = 1;
+                List<WorklogEntry> worklogEntries = new List<WorklogEntry>();
 
-                // Wait for all worklogs to be fetched
-                await Task.WhenAll(worklogTasks).ConfigureAwait(false);
                 foreach (var issueKey in issueKeys)
                 {
+                    await GetWorklogsForIssue(client, issueKey, worklogEntries);
                     ShowProgressBar(counter++, issueKeys.Count, issueKey); // Showing progress bar
                 }
 
