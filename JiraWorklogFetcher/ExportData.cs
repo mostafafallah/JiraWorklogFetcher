@@ -10,7 +10,7 @@ namespace JiraWorklogFetcher
             try
             {
                 var csvContent = new StringBuilder();
-                csvContent.AppendLine("Register Date,Issue Key,Creator,Hours,Minutes,Assigne To");
+                csvContent.AppendLine("Register Date,Issue Key,Issue Title,Creator,Hours,Minutes,Assigne To,Comment");
 
                 foreach (var entry in worklogEntries)
                 {
@@ -21,7 +21,7 @@ namespace JiraWorklogFetcher
                         date = $"{persianCalendar.GetYear(dateObj)}/{persianCalendar.GetMonth(dateObj):D2}/{persianCalendar.GetDayOfMonth(dateObj):D2}";
                     }
 
-                    csvContent.AppendLine($"{date},{entry.IssueKey},{entry.Author},{entry.HoursSpent},{entry.MinutesSpent},{entry.Assignee}");
+                    csvContent.AppendLine($"{date},{entry.IssueKey},{entry.IssueSummary},{entry.Author},{entry.HoursSpent},{entry.MinutesSpent},{entry.Assignee},{entry.Comment}");
                 }
 
                 string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";

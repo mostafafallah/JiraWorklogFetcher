@@ -151,9 +151,12 @@ namespace JiraWorklogFetcher
                 // API request for fetching worklogs of the issue
                 var worklogResponse = await client.GetAsync($"/rest/api/2/issue/{issueKey}/worklog").ConfigureAwait(false);
 
-                if (!issueResponse.IsSuccessStatusCode || !worklogResponse.IsSuccessStatusCode)
+                // API request for finding summary of the issue
+                var summaryResponse = await client.GetAsync($"/rest/api/2/issue/{issueKey}?fields=summary").ConfigureAwait(false);
+
+                if (!issueResponse.IsSuccessStatusCode || !worklogResponse.IsSuccessStatusCode || !summaryResponse.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"Error in finding worklogs of issue {issueKey}");
+                    Console.WriteLine($"Error in finding worklogs of issue {issueKey} ...");
                     return;
                 }
 
@@ -168,6 +171,17 @@ namespace JiraWorklogFetcher
                     }
                 }
 
+                // Finding summary field
+                string issueSummaryResult = await summaryResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                string? issueSummary = ""; // Default value - you can change it
+                using (JsonDocument doc = JsonDocument.Parse(issueSummaryResult))
+                {
+                    if (doc.RootElement.GetProperty("fields").TryGetProperty("summary", out JsonElement summaryElement) && summaryElement.ValueKind != JsonValueKind.Null)
+                    {
+                        issueSummary = summaryElement.GetString();
+                    }
+                }
+
                 // Working on worklogs
                 string worklogResult = await worklogResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
                 using (JsonDocument doc = JsonDocument.Parse(worklogResult))
@@ -177,6 +191,7 @@ namespace JiraWorklogFetcher
                         var author = worklog.GetProperty("author").GetProperty("displayName").GetString();
                         var timeSpentSeconds = worklog.GetProperty("timeSpentSeconds").GetInt32();
                         var created = worklog.GetProperty("started").GetString();
+                        var comment = worklog.GetProperty("comment").GetString()?.Replace("\r\n", "*") ?? "";
                         DateTime date = DateTime.ParseExact(created, "yyyy-MM-ddTHH:mm:ss.fffzzz", CultureInfo.InvariantCulture);
 
                         // Adding worklog entry to the list
@@ -184,10 +199,12 @@ namespace JiraWorklogFetcher
                         {
                             Date = date.ToString("yyyy-MM-dd"),
                             IssueKey = issueKey,
+                            IssueSummary = issueSummary,
                             Author = author,
                             HoursSpent = Math.Round(timeSpentSeconds / 3600.0, 2),
                             MinutesSpent = Math.Round(timeSpentSeconds / 60.0, 0),
-                            Assignee = assignee
+                            Assignee = assignee,
+                            Comment = comment,
                         });
                     }
                 }
